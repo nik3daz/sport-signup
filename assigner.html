@@ -1,0 +1,181 @@
+<html>
+<head>
+    <style>
+        textarea {
+            width: 800px;
+            height: 400px;
+        }
+        .sportLimit {
+            min-width: 300px;
+        }
+    </style>
+</head>
+<body>
+    <script>
+        
+        const sliders = new Set();
+        const sportLimits = new Map();
+
+        function crunch() {
+            const sports = new Map();
+            const data = [];
+
+            const input = document.querySelector('#input').value;
+            const lines = input.split('\n').slice(1);
+            for (const l of lines) {
+                line = l.split(',').slice(1, 5);
+                if (line.length < 4) {
+                    continue;
+                }
+                const name = line[0];
+                const prefs =  line.slice(1);
+                data.push(line);
+                for (const pref of prefs) {
+                    if (!sportLimits.has(pref)) {
+                        sportLimits.set(pref, 30);
+                    }
+                    if (!sports.has(pref)) {
+                        sports.set(pref, []);
+                    }
+                    // sports.get(pref).push(line);
+                }
+            }
+            console.log(sportLimits);
+
+            const slidersDiv = document.querySelector('#limitSliders');
+            for (const [name, limit] of sportLimits.entries()) {
+                if (sliders.has(name)) {
+                    continue;
+                }
+                sliders.add(name);
+
+                const div = document.createElement('div');
+                div.style = 'display: flex';
+                {
+                    const el = document.createElement('label');
+                    el.innerHTML = name;
+                    el.className = "sportLimit";
+                    div.appendChild(el);
+                }
+                {
+                    const el = document.createElement('input');
+                    el.type = 'text';
+                    el.name = name;
+                    el.value = limit;
+                    el.min = 1;
+                    el.max = 200;
+                    el.onchange = () => {
+                        sportLimits.set(name, parseInt(el.value));
+                        console.log(sportLimits);
+                    }
+                    div.appendChild(el);
+                }
+                slidersDiv.appendChild(div);
+            }
+
+            const students = [];
+            const unassigned = [];
+            for (const l of data) {
+                let name = l[0];
+                let prefs = l.slice(1);
+                let assigned = false;
+                for (const p of prefs) {
+                    const sport = sports.get(p);
+                    if (sport.length < sportLimits.get(p)) {
+                        sport.push(name);
+                        students.push([name, p]);
+                        assigned = true;
+                        break;
+                    }
+                }
+                if (assigned) {
+                    continue;
+                }
+                students.push([name, "None"]);
+                unassigned.push(name);
+            }
+            console.log(sports);
+            console.log(students);
+            console.log(unassigned);
+
+
+            let output = [];
+            output.push(['Name', 'Sport']);
+            output = output.concat(students);
+            output.push([]);
+            output.push([]);
+
+            for (let [sport, students] of sports.entries()) {
+                output.push([sport, sportLimits.get(sport)]);
+                for (let s of students) {
+                    output.push([s]);
+                }
+                output.push([]);
+                output.push([]);
+            }
+
+            output.push(['Unassigned']);
+            for (const s of unassigned) {
+                output.push([s]);
+            }
+
+            let outputString = '';
+            for (const l of output) {
+                outputString += l.join(',') + '\n';
+            }
+
+            document.querySelector('#output').innerHTML = outputString;
+        }
+
+
+
+        function saveTextAsFile() {
+        var textToWrite = document.getElementById('output').innerHTML;
+        var textFileAsBlob = new Blob([ textToWrite ], { type: 'text/plain' });
+        var fileNameToSaveAs = "file.csv"; //filename.extension
+
+        var downloadLink = document.createElement("a");
+        downloadLink.download = fileNameToSaveAs;
+        downloadLink.innerHTML = "Download File";
+        if (window.webkitURL != null) {
+            // Chrome allows the link to be clicked without actually adding it to the DOM.
+            downloadLink.href = window.webkitURL.createObjectURL(textFileAsBlob);
+        } else {
+            // Firefox requires the link to be added to the DOM before it can be clicked.
+            downloadLink.href = window.URL.createObjectURL(textFileAsBlob);
+            downloadLink.onclick = destroyClickedElement;
+            downloadLink.style.display = "none";
+            document.body.appendChild(downloadLink);
+        }
+
+        downloadLink.click();
+        }
+
+
+    </script>
+    <p>From Google Sheets: File > Download > Comma Separated Values (.csv)</p>
+    <textarea id="input">
+        Timestamp,Name,"In order of preference, what sport do you want to do? [1st]","In order of preference, what sport do you want to do? [2nd]","In order of preference, what sport do you want to do? [3rd]","In order of preference, what sport do you want to do? [No data in column]"
+        27/03/2022 16:28:27,Christopher Lam,Oztag,Dance Hip Hop,Boxercise,
+        27/03/2022 16:29:13,Test2 ,Cricket,Scooter,Dance Hip Hop,
+        27/03/2022 16:29:21,Test3,Dance Hip Hop,Netball,Boxercise,
+        27/03/2022 16:30:17,asdf,Scooter,Cricket,Walking,
+        27/03/2022 16:30:23,qwerqwer,Boxercise,Walking,Netball,
+        27/03/2022 16:30:23,qwerqwer,Boxercise,Walking,Netball,
+        27/03/2022 16:30:23,qwerqwer,Boxercise,Walking,Netball,
+        27/03/2022 16:30:23,REJECT,Boxercise,Walking,Netball,
+    </textarea>
+    <br>
+    <button onclick="crunch()">Crunch!</button>
+    <div id="limitSliders">Limits</div>
+
+    <br>
+    <br>
+    <textarea id="output">
+    </textarea>
+    <button id="save" onclick="saveTextAsFile()">Save!</button> 
+    <script>
+        crunch();
+    </script>
+</body>
+</html>
